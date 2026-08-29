@@ -3,35 +3,97 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TVBox 统一网关</title>
+  <title>TVBox 网关控制台</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-    .card { background: #fff; border-radius: 16px; padding: 40px; max-width: 500px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center; }
-    h1 { font-size: 24px; margin-bottom: 8px; color: #e74c3c; }
-    .subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
-    .url-box { background: #f8f9fa; border: 2px dashed #ddd; border-radius: 10px; padding: 16px; margin: 16px 0; word-break: break-all; font-family: monospace; font-size: 14px; color: #333; }
-    .url-box .label { display: block; font-size: 12px; color: #999; margin-bottom: 6px; text-align: left; }
-    .status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; }
-    .status.ok { background: #d4edda; color: #155724; }
-    .status.warn { background: #fff3cd; color: #856404; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 6px; }
-    .badge.live { background: #dbeafe; color: #1e40af; }
-    .badge.vod { background: #fce7f3; color: #9d174d; }
+    :root {
+      --bg: #0f1220; --card: #1a1f36; --border: #2a3050;
+      --text: #e8eaf6; --muted: #8b93b0; --accent: #ff4d6d;
+      --green: #2ecc71; --blue: #4da3ff; --purple: #a78bfa;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 28px; }
+    header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+    header h1 .dot { color: var(--accent); }
+    header p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+
+    .url-row { display: flex; gap: 10px; align-items: center; }
+    .url-box { flex: 1; background: #0d1020; border: 1px dashed var(--border); border-radius: 8px; padding: 12px 14px; font-family: "SF Mono", Consolas, monospace; font-size: 14px; word-break: break-all; color: var(--blue); }
+    .copy-btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 12px 20px; cursor: pointer; font-size: 14px; font-weight: 600; white-space: nowrap; transition: opacity .2s; }
+    .copy-btn:hover { opacity: .85; }
+    .copy-btn.ok { background: var(--green); }
+
+    .stats { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    .stat { flex: 1; min-width: 120px; background: #0d1020; border-radius: 10px; padding: 14px; text-align: center; }
+    .stat .num { font-size: 28px; font-weight: 700; }
+    .stat .lbl { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .stat.live .num { color: var(--green); }
+    .stat.vod .num { color: var(--purple); }
+
+    .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 6px; }
+    .section-title::before { content: ''; width: 4px; height: 16px; background: var(--accent); border-radius: 2px; }
+
+    .site-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .site-chip { background: #0d1020; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; cursor: pointer; transition: all .15s; text-align: center; }
+    .site-chip:hover { border-color: var(--purple); color: var(--purple); }
+
+    .live-groups { display: flex; flex-direction: column; gap: 8px; }
+    .live-group { background: #0d1020; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .live-group .cnt { color: var(--muted); font-size: 12px; }
+
+    .steps { color: var(--muted); font-size: 13px; line-height: 1.8; padding-left: 18px; }
+    .steps li { margin-bottom: 4px; }
+    .steps code { background: #0d1020; padding: 2px 6px; border-radius: 4px; color: var(--blue); font-size: 12px; }
+
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .status-dot.ok { background: var(--green); }
+    .status-dot.bad { background: #e74c3c; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>📺 TVBox 统一网关</h1>
-    <p class="subtitle">直播 + 点播，一个地址搞定</p>
+  <div class="wrap">
+    <header>
+      <h1>TVBox 网关<span class="dot">控制台</span></h1>
+      <p>直播 + 点播，一个地址搞定</p>
+    </header>
 
-    <div class="url-box">
-      <span class="label">📋 TVBox 配置地址（复制到 TVBox APP）</span>
-      <span id="tvboxUrl" style="color: #e74c3c; font-weight: bold;">加载中...</span>
+    <div class="card">
+      <div class="section-title">配置地址</div>
+      <div class="url-row">
+        <div class="url-box" id="tvboxUrl">加载中...</div>
+        <button class="copy-btn" id="copyBtn" onclick="copyUrl()">复制</button>
+      </div>
     </div>
 
-    <div id="statusArea">
-      <span class="status warn">⏳ 检测中...</span>
+    <div class="card">
+      <div class="section-title">运行状态</div>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">点播站点</div>
+      <div class="site-grid" id="siteGrid">加载中...</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">直播频道</div>
+      <div class="live-groups" id="liveGroups">加载中...</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">使用方法</div>
+      <ol class="steps">
+        <li>在手机/电视安装 <b>OK影视</b> 或 <b>TVBox</b></li>
+        <li>打开 APP → 设置 → 配置地址</li>
+        <li>填入上面的地址（点「复制」）</li>
+        <li>返回首页，自动加载站点和直播</li>
+      </ol>
     </div>
   </div>
 
@@ -40,35 +102,51 @@
     const tvboxUrl = base + '/tvbox';
     document.getElementById('tvboxUrl').textContent = tvboxUrl;
 
+    function copyUrl() {
+      const btn = document.getElementById('copyBtn');
+      navigator.clipboard.writeText(tvboxUrl).then(() => {
+        btn.textContent = '已复制';
+        btn.classList.add('ok');
+        setTimeout(() => { btn.textContent = '复制'; btn.classList.remove('ok'); }, 1500);
+      });
+    }
+
     fetch(tvboxUrl)
       .then(r => r.json())
       .then(data => {
-        const lives = data.lives?.length || 0;
-        const sites = data.sites?.length || 0;
-        if (lives > 0 && sites > 0) {
-          document.getElementById('statusArea').innerHTML = `
-            <span class="status ok">✅ 运行正常</span>
-            <span class="badge live">📺 ${lives} 组直播</span>
-            <span class="badge vod">🎬 ${sites} 个站点</span>
-          `;
-        } else if (lives > 0) {
-          document.getElementById('statusArea').innerHTML = `
-            <span class="status warn">⚠️ 仅有直播源 (${lives} 组)</span>
-          `;
-        } else if (sites > 0) {
-          document.getElementById('statusArea').innerHTML = `
-            <span class="status warn">⚠️ 仅有点播源 (${sites} 个站点)</span>
-          `;
+        const sites = data.sites || [];
+        const lives = data.lives || [];
+        const liveChannels = lives.reduce((sum, g) => sum + (g.channels ? g.channels.length : 0), 0);
+
+        // 统计
+        document.getElementById('stats').innerHTML = `
+          <div class="stat vod"><div class="num">${sites.length}</div><div class="lbl">点播站点</div></div>
+          <div class="stat live"><div class="num">${lives.length}</div><div class="lbl">直播分组</div></div>
+          <div class="stat live"><div class="num">${liveChannels}</div><div class="lbl">直播频道</div></div>
+        `;
+
+        // 站点列表
+        if (sites.length) {
+          document.getElementById('siteGrid').innerHTML = sites.map(s =>
+            `<div class="site-chip">${s.name || s.key}</div>`
+          ).join('');
         } else {
-          document.getElementById('statusArea').innerHTML = `
-            <span class="status warn">⚠️ 暂无数据，请检查源地址配置</span>
-          `;
+          document.getElementById('siteGrid').textContent = '暂无站点';
+        }
+
+        // 直播分组
+        if (lives.length) {
+          document.getElementById('liveGroups').innerHTML = lives.map(g =>
+            `<div class="live-group"><span>${g.group || '未命名分组'}</span><span class="cnt">${g.channels ? g.channels.length : 0} 个频道</span></div>`
+          ).join('');
+        } else {
+          document.getElementById('liveGroups').textContent = '暂无直播';
         }
       })
       .catch(() => {
-        document.getElementById('statusArea').innerHTML = `
-          <span class="status warn">❌ 请求失败</span>
-        `;
+        document.getElementById('stats').innerHTML = '<span style="color:#e74c3c">请求失败，请稍后重试</span>';
+        document.getElementById('siteGrid').textContent = '加载失败';
+        document.getElementById('liveGroups').textContent = '加载失败';
       });
   </script>
 </body>
